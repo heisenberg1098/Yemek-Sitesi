@@ -1,60 +1,33 @@
 /**
  * ui.js
- * DOM işlemleri ve arayüz render fonksiyonları.
- * Veri çekmez; aldığı veriyi ekrana yansıtır.
- * app.js bu modülü orkestra eder.
+ * DOM render fonksiyonları ve arayüz yardımcıları.
+ * Veri çekmez; hazır veriyi ekrana yansıtır.
  */
 
 import { getAverageRating, formatDate } from "./food.js";
 
 /* ══════════════════════════════════════════
-   SAYFA NAVİGASYONU
+   NAVİGASYON
 ══════════════════════════════════════════ */
 
 /**
- * Belirtilen sayfayı gösterir, diğerlerini gizler.
- * Nav butonlarının "active" sınıfını günceller.
- * @param {string} pageId - "home" | "list" | "add" | "history"
+ * Sayfayı gösterir, nav butonlarını günceller.
+ * @param {string} pageId - "home"|"list"|"grocery"|"add"|"history"
  */
 export function showPage(pageId) {
-  // Tüm sayfaları gizle
   document.querySelectorAll(".page").forEach(p => p.classList.remove("page--active"));
+  document.getElementById(`page-${pageId}`)?.classList.add("page--active");
 
-  // Hedef sayfayı göster
-  const target = document.getElementById(`page-${pageId}`);
-  if (target) target.classList.add("page--active");
-
-  // Nav butonlarını güncelle
+  // Tab bar butonları
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.page === pageId);
+  });
+  // Masaüstü nav butonları
   document.querySelectorAll(".nav-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.page === pageId);
   });
 
-  // Mobil menüyü kapat
-  closeMobileMenu();
-
-  // Sayfanın en üstüne kaydır
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-/**
- * Mobil hamburger menüyü açar/kapatır.
- */
-export function toggleMobileMenu() {
-  const nav    = document.querySelector(".header__nav");
-  const toggle = document.getElementById("menuToggle");
-  const isOpen = nav.classList.toggle("open");
-  toggle.classList.toggle("open", isOpen);
-  toggle.setAttribute("aria-label", isOpen ? "Menüyü kapat" : "Menüyü aç");
-}
-
-/**
- * Mobil menüyü kapatır.
- */
-export function closeMobileMenu() {
-  document.querySelector(".header__nav").classList.remove("open");
-  const toggle = document.getElementById("menuToggle");
-  toggle.classList.remove("open");
-  toggle.setAttribute("aria-label", "Menüyü aç");
+  window.scrollTo({ top: 0, behavior: "instant" });
 }
 
 /* ══════════════════════════════════════════
@@ -62,19 +35,21 @@ export function closeMobileMenu() {
 ══════════════════════════════════════════ */
 
 /**
- * Ana sayfadaki "Günün Yemeği" kartını render eder.
- * @param {Object|null} food - Gösterilecek yemek nesnesi
+ * Ana sayfadaki büyük öneri kartını render eder.
+ * @param {Object|null} food          - Gösterilecek yemek
+ * @param {boolean}     manuallyPicked - Manuel seçildiyse "Enes Öneriyor" etiketi
  */
-export function renderTodayCard(food) {
-  const card      = document.getElementById("todayCard");
-  const btnMake   = document.getElementById("btnMakeit");
+export function renderTodayCard(food, manuallyPicked = false) {
+  const card    = document.getElementById("todayCard");
+  const btnMake = document.getElementById("btnMakeit");
 
   if (!food) {
+    card.className = "today-card";
     card.innerHTML = `
       <div class="today-card__body">
         <p class="today-card__category">Öneri</p>
         <p class="today-card__name">Yemek listesi boş.</p>
-        <p style="color:var(--color-text-sub); font-size:var(--text-sm);">
+        <p style="color:var(--color-text-sub);font-size:var(--text-sm)">
           Önce birkaç yemek ekleyin.
         </p>
       </div>`;
@@ -82,131 +57,132 @@ export function renderTodayCard(food) {
     return;
   }
 
-  const avg        = getAverageRating(food);
-  const hasPhoto   = food.photoUrl && food.photoUrl.trim() !== "";
-  const starsHtml  = renderStarsDisplay(avg);
+  const avg      = getAverageRating(food);
+  const hasPhoto = food.photoUrl?.trim();
+  const stars    = renderStarsDisplay(avg);
 
-  if (hasPhoto) {
-    card.className = "today-card today-card--with-photo";
-    card.innerHTML = `
-      <img
-        class="today-card__photo"
-        src="${escHtml(food.photoUrl)}"
-        alt="${escHtml(food.name)}"
-        onerror="this.style.display='none'"
-      />
-      <div class="today-card__body">
-        <p class="today-card__category">${escHtml(food.category)}</p>
-        <h2 class="today-card__name">${escHtml(food.name)}</h2>
-        <div class="today-card__meta">
-          <span class="today-card__time">⏱ ${food.prepTime} dk</span>
-          <span class="today-card__rating">${starsHtml}</span>
-        </div>
-      </div>`;
-  } else {
-    card.className = "today-card";
-    card.innerHTML = `
-      <div class="today-card__body">
-        <p class="today-card__category">${escHtml(food.category)}</p>
-        <h2 class="today-card__name">${escHtml(food.name)}</h2>
-        <div class="today-card__meta">
-          <span class="today-card__time">⏱ ${food.prepTime} dk</span>
-          <span class="today-card__rating">${starsHtml}</span>
-        </div>
-      </div>`;
-  }
+  // Manuel seçimde öne çıkan kart sınıfı + badge
+  card.className = `today-card${manuallyPicked ? " today-card--featured" : ""}`;
+
+  const badgeHtml = manuallyPicked
+    ? `<div class="today-card__badge">
+         <i data-lucide="star"></i>
+         Enes Öneriyor
+       </div>`
+    : "";
+
+  const photoHtml = hasPhoto
+    ? `<img class="today-card__photo" src="${esc(food.photoUrl)}"
+            alt="${esc(food.name)}" onerror="this.style.display='none'">`
+    : "";
+
+  card.innerHTML = `
+    ${badgeHtml}
+    ${photoHtml}
+    <div class="today-card__body">
+      <p class="today-card__category">${esc(food.category)}</p>
+      <h2 class="today-card__name">${esc(food.name)}</h2>
+      <div class="today-card__meta">
+        <span class="today-card__time">
+          <i data-lucide="clock"></i> ${food.prepTime} dk
+        </span>
+        <span class="today-card__rating">${stars}</span>
+      </div>
+    </div>`;
 
   btnMake.disabled = false;
+
+  // Lucide ikonlarını yeniden çiz (dinamik HTML içinde)
+  if (window.lucide) window.lucide.createIcons();
 }
 
 /**
  * Son yapılan yemekler bilgi satırını günceller.
- * @param {Array} recentItems - Geçmiş kayıtları
+ * @param {Array} recentItems
  */
 export function renderRecentInfo(recentItems) {
   const box  = document.getElementById("recentInfo");
   const list = document.getElementById("recentList");
-
-  if (recentItems.length === 0) {
-    box.style.display = "none";
-    return;
-  }
-
-  // Tekrarsız yemek adları
-  const uniqueNames = [...new Set(recentItems.map(i => i.name))];
-  list.textContent  = uniqueNames.join(", ");
-  box.style.display = "block";
+  if (!recentItems.length) { box.style.display = "none"; return; }
+  list.textContent  = [...new Set(recentItems.map(i => i.name))].join(", ");
+  box.style.display = "flex";
 }
 
 /* ══════════════════════════════════════════
-   YEMEK LİSTESİ
+   YEMEK GRID
 ══════════════════════════════════════════ */
 
 /**
  * Yemek kartlarını grid'e render eder.
- * @param {Array}  foods           - Gösterilecek yemekler
- * @param {Function} onRateClick   - Kart üzerindeki "Puanla" tıklandığında çağrılır
+ * @param {Array}    foods
+ * @param {Function} onCookClick - "Bugün Yap" tıklandığında
+ * @param {Function} onRateClick - "Puanla" tıklandığında
  */
-export function renderFoodGrid(foods, onRateClick) {
-  const grid       = document.getElementById("foodGrid");
-  const emptyState = document.getElementById("emptyState");
+export function renderFoodGrid(foods, onCookClick, onRateClick) {
+  const grid  = document.getElementById("foodGrid");
+  const empty = document.getElementById("emptyState");
 
-  if (foods.length === 0) {
-    grid.innerHTML      = "";
-    emptyState.style.display = "flex";
+  if (!foods.length) {
+    grid.innerHTML    = "";
+    empty.style.display = "flex";
     return;
   }
 
-  emptyState.style.display = "none";
+  empty.style.display = "none";
   grid.innerHTML = foods.map(food => buildFoodCard(food)).join("");
 
-  // "Puanla" butonlarına event bağla
-  grid.querySelectorAll(".btn-rate").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const foodId   = btn.dataset.id;
-      const foodName = btn.dataset.name;
-      onRateClick(foodId, foodName);
-    });
+  // Event'leri bağla
+  grid.querySelectorAll(".btn-cook").forEach(btn => {
+    btn.addEventListener("click", () => onCookClick(btn.dataset.id));
   });
+  grid.querySelectorAll(".btn-rate").forEach(btn => {
+    btn.addEventListener("click", () => onRateClick(btn.dataset.id, btn.dataset.name));
+  });
+
+  if (window.lucide) window.lucide.createIcons();
 }
 
 /**
- * Tek bir yemek kartının HTML'ini üretir.
- * @param {Object} food - Yemek nesnesi
- * @returns {string} HTML string
+ * Tek yemek kartı HTML'i üretir.
+ * @param {Object} food
+ * @returns {string}
  */
 function buildFoodCard(food) {
-  const avg       = getAverageRating(food);
-  const starsHtml = renderStarsDisplay(avg);
-  const hasPhoto  = food.photoUrl && food.photoUrl.trim() !== "";
+  const avg      = getAverageRating(food);
+  const hasPhoto = food.photoUrl?.trim();
 
   const photoHtml = hasPhoto
-    ? `<img class="food-card__photo" src="${escHtml(food.photoUrl)}" alt="${escHtml(food.name)}" loading="lazy" onerror="this.style.display='none'">`
+    ? `<img class="food-card__photo" src="${esc(food.photoUrl)}" alt="${esc(food.name)}"
+            loading="lazy" onerror="this.parentElement.innerHTML='<div class=food-card__photo-placeholder>${categoryEmoji(food.category)}</div>'">`
     : `<div class="food-card__photo-placeholder">${categoryEmoji(food.category)}</div>`;
 
   return `
     <article class="food-card">
       ${photoHtml}
       <div class="food-card__body">
-        <p class="food-card__category">${escHtml(food.category)}</p>
-        <h3 class="food-card__name">${escHtml(food.name)}</h3>
+        <p class="food-card__category">${esc(food.category)}</p>
+        <h3 class="food-card__name">${esc(food.name)}</h3>
         <div class="food-card__footer">
-          <span class="food-card__time">⏱ ${food.prepTime} dk</span>
-          <div class="stars-display">${starsHtml}</div>
-          <button
-            class="btn-rate"
-            data-id="${food.id}"
-            data-name="${escHtml(food.name)}"
-            aria-label="${escHtml(food.name)} yemeğini puanla"
-          >Puanla</button>
+          <span class="food-card__time">
+            <i data-lucide="clock"></i>${food.prepTime} dk
+          </span>
+          <div class="stars-display">${renderStarsDisplay(avg)}</div>
         </div>
+      </div>
+      <div class="food-card__actions">
+        <button class="btn-cook" data-id="${food.id}" aria-label="${esc(food.name)} bugün yap">
+          <i data-lucide="cooking-pot"></i> Bugün Yap
+        </button>
+        <button class="btn-rate" data-id="${food.id}" data-name="${esc(food.name)}" aria-label="Puanla">
+          <i data-lucide="star"></i>
+        </button>
       </div>
     </article>`;
 }
 
 /**
- * Kategori filtre butonlarına event bağlar.
- * @param {Function} onFilter - Seçilen kategori string'i ile çağrılır
+ * Filtre butonlarına olay bağlar.
+ * @param {Function} onFilter
  */
 export function bindFilterButtons(onFilter) {
   document.querySelectorAll(".filter-btn").forEach(btn => {
@@ -219,33 +195,90 @@ export function bindFilterButtons(onFilter) {
 }
 
 /* ══════════════════════════════════════════
-   GEÇMİŞ LİSTESİ
+   ALIŞVERİŞ LİSTESİ
 ══════════════════════════════════════════ */
 
 /**
- * Geçmiş sayfasındaki yemek listesini render eder.
- * @param {Array} items - Geçmiş kayıtları (en yeni önce)
+ * Alışveriş listesini render eder.
+ * @param {Array}    items
+ * @param {Function} onToggle  - Tamamla/geri al
+ * @param {Function} onDelete  - Sil
  */
-export function renderHistory(items) {
-  const list         = document.getElementById("historyList");
-  const emptyHistory = document.getElementById("historyEmpty");
+export function renderGroceryList(items, onToggle, onDelete) {
+  const list    = document.getElementById("groceryList");
+  const empty   = document.getElementById("groceryEmpty");
+  const toolbar = document.getElementById("groceryToolbar");
 
-  if (items.length === 0) {
-    list.innerHTML          = "";
-    emptyHistory.style.display = "flex";
+  if (!items.length) {
+    list.innerHTML         = "";
+    empty.style.display    = "flex";
+    toolbar.style.display  = "none";
     return;
   }
 
-  emptyHistory.style.display = "none";
-  list.innerHTML = items.map(item => {
-    const starsHtml = renderStarsDisplay(item.rating ?? 0);
-    const dateText  = item.cookedAt ? formatDate(item.cookedAt) : "—";
+  empty.style.display   = "none";
+  toolbar.style.display = "flex";
 
+  // Tamamlanmayanlar üstte, tamamlananlar altta
+  const sorted = [
+    ...items.filter(i => !i.done),
+    ...items.filter(i =>  i.done)
+  ];
+
+  list.innerHTML = sorted.map(item => `
+    <li class="grocery-item${item.done ? " grocery-item--done" : ""}" data-id="${item.id}">
+      <button class="grocery-item__check" data-id="${item.id}" data-done="${item.done}"
+              aria-label="${item.done ? "Geri al" : "Tamamla"}">
+        <i data-lucide="check"></i>
+      </button>
+      <span class="grocery-item__name">${esc(item.name)}</span>
+      <button class="grocery-item__delete" data-id="${item.id}" aria-label="Sil">
+        <i data-lucide="x"></i>
+      </button>
+    </li>`).join("");
+
+  list.querySelectorAll(".grocery-item__check").forEach(btn => {
+    btn.addEventListener("click", () => {
+      onToggle(btn.dataset.id, btn.dataset.done === "true");
+    });
+  });
+  list.querySelectorAll(".grocery-item__delete").forEach(btn => {
+    btn.addEventListener("click", () => onDelete(btn.dataset.id));
+  });
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+/* ══════════════════════════════════════════
+   GEÇMİŞ
+══════════════════════════════════════════ */
+
+/**
+ * Geçmiş listesini render eder.
+ * @param {Array} items
+ */
+export function renderHistory(items) {
+  const list  = document.getElementById("historyList");
+  const empty = document.getElementById("historyEmpty");
+
+  if (!items.length) {
+    list.innerHTML         = "";
+    empty.style.display    = "flex";
+    return;
+  }
+
+  empty.style.display = "none";
+  list.innerHTML = items.map(item => {
+    const date  = item.cookedAt ? formatDate(item.cookedAt) : "—";
+    const stars = renderStarsDisplay(item.rating ?? 0);
     return `
       <div class="history-item">
-        <span class="history-item__date">${dateText}</span>
-        <span class="history-item__name">${escHtml(item.name)}</span>
-        <div class="history-item__rating">${starsHtml}</div>
+        <span class="history-item__date">${date}</span>
+        <div class="history-item__info">
+          <p class="history-item__name">${esc(item.name)}</p>
+          <p class="history-item__category">${esc(item.category ?? "")}</p>
+        </div>
+        <div class="history-item__stars">${stars}</div>
       </div>`;
   }).join("");
 }
@@ -255,55 +288,40 @@ export function renderHistory(items) {
 ══════════════════════════════════════════ */
 
 /**
- * Puanlama modalini açar ve yıldız seçme widgetını hazırlar.
- * @param {string}   foodId   - Puanlanacak yemeğin ID'si
- * @param {string}   foodName - Modal başlığında gösterilecek isim
- * @param {Function} onSubmit - Seçilen puan (1–5) ile çağrılır
+ * Puanlama modalini açar.
+ * @param {string}   foodId
+ * @param {string}   foodName
+ * @param {Function} onSubmit
  */
 export function openRatingModal(foodId, foodName, onSubmit) {
-  const modal    = document.getElementById("ratingModal");
-  const title    = document.getElementById("modalFoodName");
-  const stars    = document.getElementById("starRating");
-  const btnSubmit = document.getElementById("btnSubmitRating");
+  const modal   = document.getElementById("ratingModal");
+  const title   = document.getElementById("modalFoodName");
+  const stars   = document.getElementById("starRating");
 
   title.textContent = foodName;
   let selected = 0;
 
   // Yıldızları oluştur
-  stars.innerHTML = [1, 2, 3, 4, 5].map(n => `
-    <button
-      class="star-btn"
-      data-value="${n}"
-      role="radio"
-      aria-checked="false"
-      aria-label="${n} yıldız"
-    >★</button>`).join("");
+  stars.innerHTML = [1,2,3,4,5].map(n =>
+    `<button class="star-btn" data-value="${n}" aria-label="${n} yıldız">★</button>`
+  ).join("");
 
-  // Yıldız hover ve seçim mantığı
   stars.querySelectorAll(".star-btn").forEach(btn => {
     const val = Number(btn.dataset.value);
-
-    btn.addEventListener("mouseenter", () => highlightStars(stars, val));
-    btn.addEventListener("mouseleave", () => highlightStars(stars, selected));
-
     btn.addEventListener("click", () => {
       selected = val;
-      highlightStars(stars, selected);
-      // Seçilen yıldızı aria ile işaretle
       stars.querySelectorAll(".star-btn").forEach(b => {
-        b.setAttribute("aria-checked", Number(b.dataset.value) === selected ? "true" : "false");
+        b.classList.toggle("selected", Number(b.dataset.value) <= selected);
       });
-      btnSubmit.disabled = false;
+      document.getElementById("btnSubmitRating").disabled = false;
     });
   });
 
-  // Başlangıçta gönder butonu pasif
-  btnSubmit.disabled = true;
-
-  // Gönder butonu — eski listener'ı temizle
-  const newBtn = btnSubmit.cloneNode(true);
-  btnSubmit.parentNode.replaceChild(newBtn, btnSubmit);
+  // Gönder butonunu tazele (eski listener'ı klonlayarak temizle)
+  const oldBtn  = document.getElementById("btnSubmitRating");
+  const newBtn  = oldBtn.cloneNode(true);
   newBtn.disabled = true;
+  oldBtn.parentNode.replaceChild(newBtn, oldBtn);
 
   newBtn.addEventListener("click", () => {
     if (selected < 1) return;
@@ -313,51 +331,53 @@ export function openRatingModal(foodId, foodName, onSubmit) {
 
   modal.classList.add("open");
   document.body.style.overflow = "hidden";
+  if (window.lucide) window.lucide.createIcons();
 }
 
-/**
- * Puanlama modalini kapatır.
- */
+/** Puanlama modalini kapatır. */
 export function closeRatingModal() {
   document.getElementById("ratingModal").classList.remove("open");
   document.body.style.overflow = "";
 }
 
+/* ══════════════════════════════════════════
+   BAŞARI ANİMASYONU
+══════════════════════════════════════════ */
+
 /**
- * Yıldızları verilen değere kadar renklendirir (hover veya seçim).
- * @param {HTMLElement} container - Yıldız butonlarının parent'ı
- * @param {number}      upTo      - Bu değere kadar renklendir (dahil)
+ * Yeşil tik animasyonunu gösterir.
+ * @param {string} message - Kullanıcıya gösterilecek metin
+ * @param {number} duration - ms (varsayılan 1600)
  */
-function highlightStars(container, upTo) {
-  container.querySelectorAll(".star-btn").forEach(btn => {
-    const val = Number(btn.dataset.value);
-    btn.classList.toggle("selected", val <= upTo);
-  });
+export function showSuccessAnimation(message, duration = 1600) {
+  const overlay = document.getElementById("successOverlay");
+  const text    = document.getElementById("successText");
+
+  text.textContent = message;
+  overlay.classList.add("show");
+  if (window.lucide) window.lucide.createIcons();
+
+  setTimeout(() => overlay.classList.remove("show"), duration);
 }
 
 /* ══════════════════════════════════════════
-   TOAST BİLDİRİMİ
+   TOAST
 ══════════════════════════════════════════ */
 
-/** Aktif toast zamanlayıcısı — çakışmayı önler */
 let toastTimer = null;
 
 /**
- * Ekranın altında kısa süreli bildirim gösterir.
- * @param {string} message          - Gösterilecek metin
- * @param {"success"|"error"|""} type - Renk türü (varsayılan: koyu gri)
- * @param {number} duration         - Gösterim süresi ms (varsayılan: 3000)
+ * Alt bildirim toastı gösterir.
+ * @param {string} message
+ * @param {"success"|"error"|""} type
+ * @param {number} duration
  */
 export function showToast(message, type = "", duration = 3000) {
   const toast = document.getElementById("toast");
-
-  // Önceki timer varsa iptal et
   if (toastTimer) clearTimeout(toastTimer);
 
-  // Tip sınıflarını temizle
   toast.classList.remove("toast--success", "toast--error", "show");
 
-  // Bir sonraki frame'de ekle (CSS geçişi tetiklensin)
   requestAnimationFrame(() => {
     toast.textContent = message;
     if (type) toast.classList.add(`toast--${type}`);
@@ -371,49 +391,39 @@ export function showToast(message, type = "", duration = 3000) {
 }
 
 /* ══════════════════════════════════════════
-   YARDIMCI FONKSİYONLAR
+   YARDIMCILAR
 ══════════════════════════════════════════ */
 
 /**
- * 0–5 arası bir puana göre dolu/boş yıldız HTML'i üretir.
- * @param {number} avg - Ortalama puan
- * @returns {string} HTML string
+ * 0–5 arası puan için dolu/boş yıldız HTML'i.
+ * @param {number} avg
+ * @returns {string}
  */
 export function renderStarsDisplay(avg) {
-  return [1, 2, 3, 4, 5].map(n =>
-    `<span class="star ${n <= Math.round(avg) ? "filled" : ""}" aria-hidden="true">★</span>`
+  return [1,2,3,4,5].map(n =>
+    `<span class="star${n <= Math.round(avg) ? " filled" : ""}" aria-hidden="true">★</span>`
   ).join("");
 }
 
 /**
- * Kategoriye göre emoji döndürür (fotoğraf yoksa placeholder için).
- * @param {string} category - Yemek kategorisi
- * @returns {string} Emoji
+ * Kategori emoji haritası.
+ * @param {string} category
+ * @returns {string}
  */
 export function categoryEmoji(category) {
-  const map = {
-    çorba:   "🥣",
-    et:      "🥩",
-    tavuk:   "🍗",
-    sebze:   "🥦",
-    makarna: "🍝",
-    diğer:   "🍽️"
-  };
+  const map = { çorba:"🥣", et:"🥩", tavuk:"🍗", sebze:"🥦", makarna:"🍝", diğer:"🍽️" };
   return map[category?.toLowerCase()] ?? "🍽️";
 }
 
 /**
- * HTML özel karakterlerini escape eder.
- * XSS saldırılarına karşı her kullanıcı girdisi bu fonksiyondan geçirilir.
- * @param {string} str - Ham metin
- * @returns {string} Güvenli metin
+ * XSS koruması — tüm kullanıcı girdileri bu fonksiyondan geçer.
+ * @param {string} str
+ * @returns {string}
  */
-function escHtml(str) {
+function esc(str) {
   if (!str) return "";
   return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;");
 }

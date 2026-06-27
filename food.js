@@ -1,21 +1,11 @@
 /**
  * food.js
- * Firestore veri katmanı.
- * Yemek ve geçmiş ile ilgili tüm okuma/yazma işlemleri burada.
- * ui.js ve app.js bu fonksiyonları çağırır; Firebase'i doğrudan kullanmaz.
+ * Firestore veri katmanı — yemek ve geçmiş işlemleri.
  */
 
 import {
-  collection,
-  doc,
-  addDoc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  orderBy,
-  query,
-  limit,
-  serverTimestamp
+  collection, doc, addDoc, getDoc, getDocs,
+  updateDoc, setDoc, orderBy, query, limit, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
 import { db, COLLECTIONS } from "./firebase.js";
@@ -25,8 +15,8 @@ import { db, COLLECTIONS } from "./firebase.js";
 ══════════════════════════════════════════ */
 
 /**
- * Firestore'daki tüm yemekleri getirir.
- * @returns {Promise<Array>} Yemek nesnelerinin dizisi ({ id, ...data })
+ * Tüm yemekleri getirir.
+ * @returns {Promise<Array>}
  */
 export async function getAllFoods() {
   const snapshot = await getDocs(collection(db, COLLECTIONS.FOODS));
@@ -34,9 +24,9 @@ export async function getAllFoods() {
 }
 
 /**
- * Tek bir yemeği ID'ye göre getirir.
- * @param {string} id - Firestore belge ID'si
- * @returns {Promise<Object|null>} Yemek nesnesi veya null
+ * Tek yemek getirir.
+ * @param {string} id
+ * @returns {Promise<Object|null>}
  */
 export async function getFoodById(id) {
   const snap = await getDoc(doc(db, COLLECTIONS.FOODS, id));
@@ -46,47 +36,42 @@ export async function getFoodById(id) {
 /**
  * Yeni yemek ekler.
  * @param {Object} foodData - { name, category, prepTime, photoUrl }
- * @returns {Promise<string>} Oluşturulan belgenin ID'si
+ * @returns {Promise<string>} Yeni belge ID'si
  */
 export async function addFood(foodData) {
-  const docRef = await addDoc(collection(db, COLLECTIONS.FOODS), {
+  const ref = await addDoc(collection(db, COLLECTIONS.FOODS), {
     name:      foodData.name.trim(),
     category:  foodData.category,
     prepTime:  Number(foodData.prepTime),
     photoUrl:  foodData.photoUrl?.trim() || "",
-    rating:    0,       // Toplam puan
-    rateCount: 0,       // Kaç kez puanlandı
+    rating:    0,
+    rateCount: 0,
     createdAt: serverTimestamp()
   });
-  return docRef.id;
+  return ref.id;
 }
 
 /**
- * Bir yemeğin puanını günceller.
- * Mevcut puana yeni puanı ekleyerek ortalama hesaplar.
- * @param {string} id     - Yemek ID'si
- * @param {number} stars  - 1–5 arası puan
+ * Yemeği puanlar. Toplam puan ve sayı birikimli tutulur.
+ * @param {string} id
+ * @param {number} stars  1–5
  */
 export async function rateFood(id, stars) {
   const food = await getFoodById(id);
   if (!food) throw new Error("Yemek bulunamadı.");
-
-  const newCount  = food.rateCount + 1;
-  const newRating = food.rating + stars;   // Ham toplam saklanır
-
   await updateDoc(doc(db, COLLECTIONS.FOODS, id), {
-    rating:    newRating,
-    rateCount: newCount
+    rating:    food.rating + stars,
+    rateCount: food.rateCount + 1
   });
 }
 
 /**
- * Bir yemeğin ortalama yıldız puanını hesaplar (0–5).
- * @param {Object} food - Firestore yemek nesnesi
- * @returns {number} Ortalama puan (ondalıklı)
+ * Ortalama puan hesaplar.
+ * @param {Object} food
+ * @returns {number}
  */
 export function getAverageRating(food) {
-  if (!food.rateCount || food.rateCount === 0) return 0;
+  if (!food?.rateCount) return 0;
   return food.rating / food.rateCount;
 }
 
@@ -96,24 +81,21 @@ export function getAverageRating(food) {
 
 /**
  * Son N günde yapılan yemekleri getirir.
- * @param {number} days - Kaç günlük geçmiş sorgulanacak (varsayılan: 5)
- * @returns {Promise<Array>} Geçmiş kayıtları dizisi
+ * @param {number} days
+ * @returns {Promise<Array>}
  */
 export async function getRecentHistory(days = 5) {
   const since = new Date();
   since.setDate(since.getDate() - days);
   since.setHours(0, 0, 0, 0);
 
-  // Tüm geçmişi tarihe göre sıralı getir, son 30 kayıtla sınırla
   const q = query(
     collection(db, COLLECTIONS.HISTORY),
     orderBy("cookedAt", "desc"),
     limit(30)
   );
-
   const snapshot = await getDocs(q);
 
-  // Son N gündekileri filtrele
   return snapshot.docs
     .map(d => ({ id: d.id, ...d.data() }))
     .filter(item => {
@@ -123,7 +105,7 @@ export async function getRecentHistory(days = 5) {
 }
 
 /**
- * Tüm geçmişi sayfa için getirir (en yeni önce, max 50 kayıt).
+ * Tüm geçmişi getirir (max 50).
  * @returns {Promise<Array>}
  */
 export async function getFullHistory() {
@@ -137,20 +119,52 @@ export async function getFullHistory() {
 }
 
 /**
- * "Yapalım" butonuna basınca çağrılır.
  * Yemeği geçmişe kaydeder.
- * @param {Object} food - Yapılan yemek nesnesi
- * @returns {Promise<string>} Oluşturulan geçmiş kaydı ID'si
+ * @param {Object} food
+ * @returns {Promise<string>}
  */
 export async function markAsCooked(food) {
-  const docRef = await addDoc(collection(db, COLLECTIONS.HISTORY), {
+  const ref = await addDoc(collection(db, COLLECTIONS.HISTORY), {
     foodId:   food.id,
     name:     food.name,
     category: food.category,
     rating:   getAverageRating(food),
     cookedAt: serverTimestamp()
   });
-  return docRef.id;
+  return ref.id;
+}
+
+/* ══════════════════════════════════════════
+   AYARLAR — recommendedFood
+   İlerideki bildirim sistemi için hazır alan.
+══════════════════════════════════════════ */
+
+/**
+ * Günün manuel seçilen yemeğini Firestore'a kaydeder.
+ * Bildirim sistemleri bu alanı dinleyebilir.
+ * @param {Object} food
+ */
+export async function saveRecommendedFood(food) {
+  await setDoc(doc(db, COLLECTIONS.SETTINGS, "daily"), {
+    recommendedFood: {
+      id:       food.id,
+      name:     food.name,
+      category: food.category,
+      prepTime: food.prepTime,
+      photoUrl: food.photoUrl || ""
+    },
+    manuallySelected: true,
+    updatedAt: serverTimestamp()
+  });
+}
+
+/**
+ * Firestore'daki günün önerisini getirir.
+ * @returns {Promise<Object|null>}
+ */
+export async function getRecommendedFood() {
+  const snap = await getDoc(doc(db, COLLECTIONS.SETTINGS, "daily"));
+  return snap.exists() ? snap.data() : null;
 }
 
 /* ══════════════════════════════════════════
@@ -158,49 +172,37 @@ export async function markAsCooked(food) {
 ══════════════════════════════════════════ */
 
 /**
- * Son N günde yapılan yemekleri hariç tutarak
- * kalan yemekler arasından rastgele bir tane seçer.
- *
- * @param {Array}  allFoods    - Tüm yemekler listesi
- * @param {Array}  recentItems - Son günlerde yapılan geçmiş kayıtları
- * @returns {Object|null} Seçilen yemek nesnesi veya null (yemek yoksa)
+ * Son N günde yapılanlar hariç rastgele yemek seçer.
+ * Uygun yemek yoksa tüm listeden seçer.
+ * @param {Array} allFoods
+ * @param {Array} recentItems
+ * @returns {Object|null}
  */
 export function pickRandomFood(allFoods, recentItems) {
-  // Son yapılan yemeklerin ID setini oluştur
   const recentIds = new Set(recentItems.map(item => item.foodId));
-
-  // Geçmişte olmayanları filtrele
-  const eligible = allFoods.filter(food => !recentIds.has(food.id));
-
-  // Uygun yemek yoksa tüm listeden seç (en azından bir şey önerilsin)
-  const pool = eligible.length > 0 ? eligible : allFoods;
-
-  if (pool.length === 0) return null;
-
-  // Rastgele seç
-  const index = Math.floor(Math.random() * pool.length);
-  return pool[index];
+  const eligible  = allFoods.filter(food => !recentIds.has(food.id));
+  const pool      = eligible.length > 0 ? eligible : allFoods;
+  if (!pool.length) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 /**
- * Tarih nesnesini "Bugün", "Dün" veya "D MMM" formatında gösterir.
- * Geçmiş listesinde kullanılır.
- * @param {Date|Object} dateOrTimestamp - Firestore Timestamp veya Date
- * @returns {string} Okunabilir tarih metni
+ * Tarih formatlayıcı: "Bugün", "Dün", "3 Haz"
+ * @param {Object|Date} dateOrTimestamp
+ * @returns {string}
  */
 export function formatDate(dateOrTimestamp) {
   const date = dateOrTimestamp?.toDate?.()
     ? dateOrTimestamp.toDate()
     : new Date(dateOrTimestamp);
 
-  const now   = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const d     = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
 
-  const diffDays = Math.round((today - d) / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return "Bugün";
-  if (diffDays === 1) return "Dün";
-
+  const diff = Math.round((today - d) / 86400000);
+  if (diff === 0) return "Bugün";
+  if (diff === 1) return "Dün";
   return date.toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
 }

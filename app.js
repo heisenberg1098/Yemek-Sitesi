@@ -1,66 +1,56 @@
 /**
  * app.js
- * Ana orkestratör modülü.
- * food.js (veri) + ui.js (arayüz) fonksiyonlarını bir araya getirir.
- * Event listener'lar ve sayfa akışları burada yönetilir.
+ * Ana orkestratör.
+ * food.js + grocery.js (veri) ve ui.js (arayüz) bağlantısı.
  */
 
 import {
-  getAllFoods,
-  addFood,
-  rateFood,
-  markAsCooked,
-  getRecentHistory,
-  getFullHistory,
-  pickRandomFood
+  getAllFoods, addFood, rateFood,
+  markAsCooked, getRecentHistory, getFullHistory,
+  pickRandomFood, saveRecommendedFood
 } from "./food.js";
 
 import {
-  showPage,
-  toggleMobileMenu,
-  renderTodayCard,
-  renderRecentInfo,
-  renderFoodGrid,
-  renderHistory,
-  bindFilterButtons,
-  openRatingModal,
-  closeRatingModal,
-  showToast
+  getGroceryItems, addGroceryItem, toggleGroceryItem,
+  deleteGroceryItem, clearGroceryList, formatListForCopy
+} from "./grocery.js";
+
+import {
+  showPage, renderTodayCard, renderRecentInfo,
+  renderFoodGrid, renderGroceryList, renderHistory,
+  bindFilterButtons, openRatingModal, closeRatingModal,
+  showToast, showSuccessAnimation, categoryEmoji
 } from "./ui.js";
 
 /* ══════════════════════════════════════════
    UYGULAMA DURUMU
 ══════════════════════════════════════════ */
 
-/** Tüm yemekler (Firestore'dan bir kez çekilir, bellekte tutulur) */
-let allFoods = [];
-
-/** Şu an ana sayfada önerilen yemek */
-let currentFood = null;
-
-/** Son N günde yapılan yemekler */
-let recentHistory = [];
-
-/** Yemek listesi sayfasında seçili filtre */
+let allFoods      = [];   // Firestore'dan çekilen yemek listesi
+let currentFood   = null; // Şu an önerilen yemek
+let recentHistory = [];   // Son 5 günlük geçmiş
 let activeCategory = "all";
+let isManualPick  = false; // "Bugün Yap" ile mi seçildi?
+let groceryItems  = [];    // Alışveriş listesi (bellekte)
 
 /* ══════════════════════════════════════════
    BAŞLATMA
 ══════════════════════════════════════════ */
 
 /**
- * Uygulama başlangıç noktası.
- * DOM hazır olduğunda çalışır.
+ * Uygulama giriş noktası.
  */
 async function init() {
-  bindNavButtons();
-  bindMenuToggle();
+  // Lucide ikonlarını başlat
+  if (window.lucide) window.lucide.createIcons();
+
+  bindAllNavButtons();
   bindHomeButtons();
   bindAddFoodForm();
   bindFilterButtons(onCategoryFilter);
   bindModalClose();
+  bindGroceryPage();
 
-  // Veriyi yükle ve ana sayfayı göster
   await loadAllData();
   showPage("home");
 }
@@ -70,42 +60,37 @@ async function init() {
 ══════════════════════════════════════════ */
 
 /**
- * Firestore'dan yemek listesini ve son geçmişi çeker.
- * Ana sayfa kartını ve geçmiş bilgisini günceller.
+ * İlk yükleme: yemekler + geçmiş paralel çekilir.
  */
 async function loadAllData() {
   try {
-    // Paralel sorgu: yemekler + son geçmiş
     [allFoods, recentHistory] = await Promise.all([
       getAllFoods(),
       getRecentHistory(5)
     ]);
-
     suggestFood();
     renderRecentInfo(recentHistory);
   } catch (err) {
     console.error("Veri yüklenemedi:", err);
-    showToast("Veriler yüklenirken hata oluştu.", "error");
+    showToast("Veriler yüklenemedi.", "error");
   }
 }
 
 /**
- * Yemek listesi sayfası açıldığında çağrılır.
- * Firestore'dan taze veri çeker ve grid'i render eder.
+ * Yemek listesi sayfası açıldığında taze veri çeker.
  */
 async function loadFoodList() {
   try {
     allFoods = await getAllFoods();
     applyFilter(activeCategory);
   } catch (err) {
-    console.error("Yemek listesi yüklenemedi:", err);
-    showToast("Liste yüklenirken hata oluştu.", "error");
+    console.error("Liste yüklenemedi:", err);
+    showToast("Liste yüklenemedi.", "error");
   }
 }
 
 /**
- * Geçmiş sayfası açıldığında çağrılır.
- * Firestore'dan tüm geçmişi çeker ve listeyi render eder.
+ * Geçmiş sayfası açıldığında taze veri çeker.
  */
 async function loadHistory() {
   try {
@@ -113,7 +98,20 @@ async function loadHistory() {
     renderHistory(history);
   } catch (err) {
     console.error("Geçmiş yüklenemedi:", err);
-    showToast("Geçmiş yüklenirken hata oluştu.", "error");
+    showToast("Geçmiş yüklenemedi.", "error");
+  }
+}
+
+/**
+ * Alışveriş sayfası açıldığında listeyi çeker.
+ */
+async function loadGrocery() {
+  try {
+    groceryItems = await getGroceryItems();
+    renderGroceryList(groceryItems, onGroceryToggle, onGroceryDelete);
+  } catch (err) {
+    console.error("Liste yüklenemedi:", err);
+    showToast("Alışveriş listesi yüklenemedi.", "error");
   }
 }
 
@@ -122,74 +120,99 @@ async function loadHistory() {
 ══════════════════════════════════════════ */
 
 /**
- * Uygun yemekler arasından rastgele bir tane seçer
- * ve ana sayfa kartını günceller.
+ * Uygun yemeklerden rastgele seçer, kartı günceller.
  */
 function suggestFood() {
-  currentFood = pickRandomFood(allFoods, recentHistory);
-  renderTodayCard(currentFood);
+  isManualPick = false;
+  currentFood  = pickRandomFood(allFoods, recentHistory);
+  renderTodayCard(currentFood, false);
+}
+
+/**
+ * "Bugün Yap" — Yemek listesinden manuel seçim.
+ * Ana sayfayı günceller, Firestore'a kaydeder.
+ * @param {string} foodId
+ */
+async function onCookFromList(foodId) {
+  const food = allFoods.find(f => f.id === foodId);
+  if (!food) return;
+
+  try {
+    // Geçmişe kaydet
+    await markAsCooked(food);
+    // Firestore settings/daily güncelle (bildirim hazırlığı)
+    await saveRecommendedFood(food);
+
+    isManualPick = true;
+    currentFood  = food;
+
+    // Başarı animasyonu
+    showSuccessAnimation(`${food.name} bugünün yemeği!`);
+
+    // Ana sayfayı güncelle
+    renderTodayCard(currentFood, true);
+    document.getElementById("btnMakeit").disabled = false;
+
+    // Geçmiş ve recent güncelle
+    recentHistory = await getRecentHistory(5);
+    renderRecentInfo(recentHistory);
+
+    // Liste sayfasını da tazele (buton durumu için)
+    applyFilter(activeCategory);
+
+    // 1 sn sonra ana sayfaya yönlendir
+    setTimeout(() => showPage("home"), 900);
+
+  } catch (err) {
+    console.error("Seçim kaydedilemedi:", err);
+    showToast("Bir hata oluştu.", "error");
+  }
 }
 
 /* ══════════════════════════════════════════
    FİLTRELEME
 ══════════════════════════════════════════ */
 
-/**
- * Kategori filtresi değiştiğinde çağrılır.
- * @param {string} category - Seçilen kategori veya "all"
- */
+/** @param {string} category */
 function onCategoryFilter(category) {
   activeCategory = category;
   applyFilter(category);
 }
 
-/**
- * Yemekleri seçili kategoriye göre filtreler ve grid'i render eder.
- * @param {string} category - "all" veya kategori adı
- */
+/** @param {string} category */
 function applyFilter(category) {
   const filtered = category === "all"
     ? allFoods
     : allFoods.filter(f => f.category === category);
-
-  renderFoodGrid(filtered, onRateClick);
+  renderFoodGrid(filtered, onCookFromList, onRateClick);
 }
 
 /* ══════════════════════════════════════════
    PUANLAMA
 ══════════════════════════════════════════ */
 
-/**
- * Yemek kartındaki "Puanla" butonuna basıldığında çağrılır.
- * @param {string} foodId   - Puanlanacak yemeğin ID'si
- * @param {string} foodName - Modal başlığı için isim
- */
+/** @param {string} foodId @param {string} foodName */
 function onRateClick(foodId, foodName) {
   openRatingModal(foodId, foodName, onRatingSubmit);
 }
 
 /**
- * Puanlama modalinde "Kaydet" basıldığında çağrılır.
- * Firestore'a yazar, listeyi ve ana sayfayı tazeler.
- * @param {string} foodId - Puanlanan yemeğin ID'si
- * @param {number} stars  - Seçilen puan (1–5)
+ * Puanı Firestore'a yazar, kartları günceller.
+ * @param {string} foodId
+ * @param {number} stars
  */
 async function onRatingSubmit(foodId, stars) {
   try {
     await rateFood(foodId, stars);
-    showToast("Puanın kaydedildi! ★".repeat(stars > 3 ? 1 : 0) || "Puanın kaydedildi!", "success");
+    showToast("Puanın kaydedildi!", "success");
 
-    // Taze veriyi çek ve sayfaları güncelle
     allFoods = await getAllFoods();
     applyFilter(activeCategory);
 
-    // Ana sayfadaki yemek hâlâ aynıysa kartını güncelle
+    // Ana sayfadaki yemek aynıysa kartını güncelle
     if (currentFood?.id === foodId) {
-      const updated = allFoods.find(f => f.id === foodId);
-      if (updated) {
-        currentFood = updated;
-        renderTodayCard(currentFood);
-      }
+      currentFood = allFoods.find(f => f.id === foodId) ?? currentFood;
+      renderTodayCard(currentFood, isManualPick);
     }
   } catch (err) {
     console.error("Puanlama hatası:", err);
@@ -198,16 +221,12 @@ async function onRatingSubmit(foodId, stars) {
 }
 
 /* ══════════════════════════════════════════
-   YEMEK EKLEME FORMU
+   YEMEK EKLEME
 ══════════════════════════════════════════ */
 
-/**
- * Yemek ekleme formunun submit olayını bağlar.
- * Doğrulama yapıp Firestore'a yazar.
- */
 function bindAddFoodForm() {
-  const btnAdd  = document.getElementById("btnAddFood");
-  const errBox  = document.getElementById("formError");
+  const btnAdd = document.getElementById("btnAddFood");
+  const errBox = document.getElementById("formError");
 
   btnAdd.addEventListener("click", async () => {
     const name     = document.getElementById("inputName").value.trim();
@@ -215,11 +234,10 @@ function bindAddFoodForm() {
     const prepTime = document.getElementById("inputTime").value;
     const photoUrl = document.getElementById("inputPhoto").value.trim();
 
-    // — Doğrulama —
     const error = validateFoodForm(name, category, prepTime);
     if (error) {
-      errBox.textContent    = error;
-      errBox.style.display  = "block";
+      errBox.textContent   = error;
+      errBox.style.display = "block";
       return;
     }
 
@@ -231,112 +249,147 @@ function bindAddFoodForm() {
       await addFood({ name, category, prepTime, photoUrl });
       showToast(`"${name}" eklendi.`, "success");
       resetAddForm();
-
-      // Yemek listesini tazele
       allFoods = await getAllFoods();
     } catch (err) {
       console.error("Yemek eklenemedi:", err);
-      showToast("Yemek eklenirken hata oluştu.", "error");
+      showToast("Yemek eklenemedi.", "error");
     } finally {
       btnAdd.disabled    = false;
-      btnAdd.textContent = "Yemeği Ekle";
+      btnAdd.innerHTML   = '<i data-lucide="plus-circle"></i> Yemeği Ekle';
+      if (window.lucide) window.lucide.createIcons();
     }
   });
 }
 
-/**
- * Yemek ekleme formunu doğrular.
- * @param {string} name     - Yemek adı
- * @param {string} category - Kategori
- * @param {string} prepTime - Hazırlama süresi
- * @returns {string|null} Hata mesajı veya null (geçerliyse)
- */
+/** @returns {string|null} */
 function validateFoodForm(name, category, prepTime) {
-  if (!name)                        return "Yemek adı boş bırakılamaz.";
-  if (name.length < 2)              return "Yemek adı en az 2 karakter olmalı.";
-  if (!category)                    return "Lütfen bir kategori seçin.";
-  if (!prepTime || isNaN(prepTime)) return "Geçerli bir hazırlama süresi girin.";
-  if (Number(prepTime) < 1)         return "Hazırlama süresi en az 1 dakika olmalı.";
+  if (!name || name.length < 2)             return "Yemek adı en az 2 karakter olmalı.";
+  if (!category)                            return "Lütfen bir kategori seçin.";
+  if (!prepTime || isNaN(prepTime) || Number(prepTime) < 1)
+                                            return "Geçerli bir hazırlama süresi girin.";
   return null;
 }
 
-/**
- * Yemek ekleme formunu sıfırlar.
- */
 function resetAddForm() {
-  document.getElementById("inputName").value     = "";
-  document.getElementById("inputCategory").value = "";
-  document.getElementById("inputTime").value     = "";
-  document.getElementById("inputPhoto").value    = "";
+  ["inputName","inputCategory","inputTime","inputPhoto"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
   document.getElementById("formError").style.display = "none";
 }
 
 /* ══════════════════════════════════════════
-   EVENT BAĞLANTILARI
+   ALIŞVERİŞ LİSTESİ
 ══════════════════════════════════════════ */
 
-/**
- * Header navigasyon butonlarını bağlar.
- * Her butona tıklandığında ilgili sayfayı açar,
- * gerekirse taze veri çeker.
- */
+function bindGroceryPage() {
+  const input  = document.getElementById("groceryInput");
+  const btnAdd = document.getElementById("btnAddGrocery");
 
+  // Ürün ekle
+  const doAdd = async () => {
+    const name = input.value.trim();
+    if (!name) return;
+    try {
+      await addGroceryItem(name);
+      input.value = "";
+      groceryItems = await getGroceryItems();
+      renderGroceryList(groceryItems, onGroceryToggle, onGroceryDelete);
+    } catch (err) {
+      console.error("Ürün eklenemedi:", err);
+      showToast("Ürün eklenemedi.", "error");
+    }
+  };
 
+  btnAdd.addEventListener("click", doAdd);
+  // Enter tuşuyla da eklenebilsin
+  input.addEventListener("keydown", e => { if (e.key === "Enter") doAdd(); });
 
-function bindNavButtons() {
-  // Nav butonları
-  document.querySelectorAll(".nav-btn").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const page = btn.dataset.page;
-      showPage(page);
-      if (page === "list")    await loadFoodList();
-      if (page === "history") await loadHistory();
-    });
+  // Listeyi kopyala
+  document.getElementById("btnCopyList").addEventListener("click", async () => {
+    if (!groceryItems.length) return;
+    const text = formatListForCopy(groceryItems);
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast("Liste panoya kopyalandı.", "success");
+    } catch {
+      showToast("Kopyalanamadı.", "error");
+    }
   });
 
-  // Logo → ana sayfa
-  document.querySelector(".header__logo").addEventListener("click", (e) => {
-    e.preventDefault();
-    showPage("home");
+  // Listeyi temizle
+  document.getElementById("btnClearList").addEventListener("click", async () => {
+    if (!groceryItems.length) return;
+    if (!confirm("Liste tamamen silinsin mi?")) return;
+    try {
+      await clearGroceryList(groceryItems);
+      groceryItems = [];
+      renderGroceryList([], onGroceryToggle, onGroceryDelete);
+      showToast("Liste temizlendi.", "success");
+    } catch (err) {
+      console.error("Liste temizlenemedi:", err);
+      showToast("Hata oluştu.", "error");
+    }
   });
 }
 
 /**
- * Mobil hamburger menü butonunu bağlar.
+ * Ürün tamamla/geri al.
+ * @param {string}  id
+ * @param {boolean} currentDone
  */
-function bindMenuToggle() {
-  document.getElementById("menuToggle").addEventListener("click", toggleMobileMenu);
+async function onGroceryToggle(id, currentDone) {
+  try {
+    await toggleGroceryItem(id, currentDone);
+    groceryItems = await getGroceryItems();
+    renderGroceryList(groceryItems, onGroceryToggle, onGroceryDelete);
+  } catch (err) {
+    console.error("Güncelleme hatası:", err);
+    showToast("Güncellenemedi.", "error");
+  }
 }
 
 /**
- * Ana sayfa butonlarını bağlar:
- * - "Yapalım" → geçmişe yazar, toast gösterir
- * - "Başka Öner" → yeni yemek önerir
+ * Ürün sil.
+ * @param {string} id
  */
+async function onGroceryDelete(id) {
+  try {
+    await deleteGroceryItem(id);
+    groceryItems = groceryItems.filter(i => i.id !== id);
+    renderGroceryList(groceryItems, onGroceryToggle, onGroceryDelete);
+  } catch (err) {
+    console.error("Silme hatası:", err);
+    showToast("Silinemedi.", "error");
+  }
+}
+
+/* ══════════════════════════════════════════
+   ANA SAYFA BUTONLARI
+══════════════════════════════════════════ */
+
 function bindHomeButtons() {
-  // "Yapalım" butonu
+  // "Yapalım" — mevcut öneriyi onayla
   document.getElementById("btnMakeit").addEventListener("click", async () => {
     if (!currentFood) return;
-
     try {
       await markAsCooked(currentFood);
-      showToast(`"${currentFood.name}" geçmişe eklendi. Afiyet olsun! 🍽️`, "success");
+      await saveRecommendedFood(currentFood);
 
-      // Geçmiş listesini tazele
+      isManualPick = true;
+      showSuccessAnimation(`${currentFood.name} — Afiyet olsun!`);
+
       recentHistory = await getRecentHistory(5);
       renderRecentInfo(recentHistory);
-
-      // Yeni öneri yap (yapılan yemek artık listeden çıkar)
-      suggestFood();
+      renderTodayCard(currentFood, true);
     } catch (err) {
-      console.error("Geçmişe eklenemedi:", err);
+      console.error("Kayıt hatası:", err);
       showToast("Bir hata oluştu.", "error");
     }
   });
 
-  // "Başka Öner" butonu
+  // "Başka Öner"
   document.getElementById("btnSuggest").addEventListener("click", () => {
-    if (allFoods.length === 0) {
+    if (!allFoods.length) {
       showToast("Önce yemek listesine yemek ekleyin.", "error");
       return;
     }
@@ -344,25 +397,43 @@ function bindHomeButtons() {
   });
 }
 
-/**
- * Puanlama modalinin kapatma olaylarını bağlar:
- * - "✕" butonu
- * - Arka plan overlay'i
- * - Escape tuşu
- */
+/* ══════════════════════════════════════════
+   NAVİGASYON
+══════════════════════════════════════════ */
+
+function bindAllNavButtons() {
+  // Tab bar + masaüstü nav
+  document.querySelectorAll(".tab-btn, .nav-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const page = btn.dataset.page;
+      showPage(page);
+      if (page === "list")    await loadFoodList();
+      if (page === "history") await loadHistory();
+      if (page === "grocery") await loadGrocery();
+    });
+  });
+
+  // Logo → ana sayfa
+  document.getElementById("logoBtn")?.addEventListener("click", e => {
+    e.preventDefault();
+    showPage("home");
+  });
+
+  // "İlk Yemeği Ekle" butonu (boş durum)
+  document.getElementById("btnGoAdd")?.addEventListener("click", () => showPage("add"));
+}
+
+/* ══════════════════════════════════════════
+   MODAL KAPAT
+══════════════════════════════════════════ */
+
 function bindModalClose() {
   document.getElementById("btnCloseModal").addEventListener("click", closeRatingModal);
-
   document.querySelector(".modal__overlay").addEventListener("click", closeRatingModal);
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeRatingModal();
-  });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeRatingModal(); });
 }
 
 /* ══════════════════════════════════════════
    BAŞLAT
 ══════════════════════════════════════════ */
-
-// DOM hazır olduğunda uygulamayı başlat
 document.addEventListener("DOMContentLoaded", init);

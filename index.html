@@ -4,34 +4,45 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Aile yemek öneri uygulaması" />
+  <meta name="theme-color" content="#ffffff" />
   <title>Bugün Ne Yesek?</title>
 
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-    rel="stylesheet"
-  />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- ==================== HEADER ==================== -->
+  <!-- ==================== HEADER (masaüstü) ==================== -->
   <header class="header">
     <div class="container header__inner">
-      <a href="#" class="header__logo" onclick="showPage('home')">🍽️ Bugün Ne Yesek?</a>
-      <nav class="header__nav">
-        <button class="nav-btn active" data-page="home">Ana Sayfa</button>
-        <button class="nav-btn" data-page="list">Yemekler</button>
-        <button class="nav-btn" data-page="add">Yemek Ekle</button>
-        <button class="nav-btn" data-page="history">Geçmiş</button>
+      <a href="#" class="header__logo" id="logoBtn">
+        <span class="header__logo-icon">🍽️</span>
+        Bugün Ne Yesek?
+      </a>
+      <nav class="header__nav" id="desktopNav">
+        <button class="nav-btn active" data-page="home">
+          <i data-lucide="home"></i> Ana Sayfa
+        </button>
+        <button class="nav-btn" data-page="list">
+          <i data-lucide="utensils"></i> Yemekler
+        </button>
+        <button class="nav-btn" data-page="grocery">
+          <i data-lucide="shopping-cart"></i> Alışveriş
+        </button>
+        <button class="nav-btn" data-page="add">
+          <i data-lucide="plus-circle"></i> Yemek Ekle
+        </button>
+        <button class="nav-btn" data-page="history">
+          <i data-lucide="clock"></i> Geçmiş
+        </button>
       </nav>
-      <!-- Mobil hamburger menü -->
-      <button class="header__menu-toggle" id="menuToggle" aria-label="Menüyü aç">
-        <span></span><span></span><span></span>
-      </button>
     </div>
   </header>
 
@@ -42,7 +53,6 @@
       <!-- ===== SAYFA: ANA SAYFA ===== -->
       <section id="page-home" class="page page--active">
 
-        <!-- Günün önerisi başlığı -->
         <div class="section-header">
           <p class="section-header__label">Günün Önerisi</p>
           <h1 class="section-header__title">Bugün ne yapalım?</h1>
@@ -50,7 +60,6 @@
 
         <!-- Günün yemeği kartı -->
         <div id="todayCard" class="today-card">
-          <!-- JavaScript tarafından doldurulur -->
           <div class="today-card__loading">
             <div class="spinner"></div>
             <p>Yemek seçiliyor…</p>
@@ -59,18 +68,21 @@
 
         <!-- Aksiyon butonları -->
         <div class="today-actions">
-          <button id="btnMakeit" class="btn btn--primary" disabled>
-            ✓ Yapalım
+          <button id="btnMakeit" class="btn btn--primary btn--lg" disabled>
+            <i data-lucide="check"></i>
+            Yapalım
           </button>
-          <button id="btnSuggest" class="btn btn--secondary">
-            ↻ Başka Öner
+          <button id="btnSuggest" class="btn btn--secondary btn--lg">
+            <i data-lucide="shuffle"></i>
+            Başka Öner
           </button>
         </div>
 
         <!-- Son yapılan yemekler bilgisi -->
         <div id="recentInfo" class="recent-info" style="display:none">
+          <i data-lucide="info" class="recent-info__icon"></i>
           <p class="recent-info__text">
-            Son birkaç günde yapılan yemekler önerilmez:
+            Son 5 günde yapıldı:
             <span id="recentList" class="recent-info__list"></span>
           </p>
         </div>
@@ -85,27 +97,74 @@
           <h2 class="section-header__title">Tüm Yemekler</h2>
         </div>
 
-        <!-- Filtre çubuğu -->
-        <div class="filter-bar">
-          <button class="filter-btn active" data-category="all">Tümü</button>
-          <button class="filter-btn" data-category="çorba">Çorba</button>
-          <button class="filter-btn" data-category="et">Et</button>
-          <button class="filter-btn" data-category="tavuk">Tavuk</button>
-          <button class="filter-btn" data-category="sebze">Sebze</button>
-          <button class="filter-btn" data-category="makarna">Makarna</button>
-          <button class="filter-btn" data-category="diğer">Diğer</button>
+        <!-- Filtre çubuğu (yatay kaydırılabilir) -->
+        <div class="filter-bar-wrap">
+          <div class="filter-bar">
+            <button class="filter-btn active" data-category="all">Tümü</button>
+            <button class="filter-btn" data-category="çorba">🥣 Çorba</button>
+            <button class="filter-btn" data-category="et">🥩 Et</button>
+            <button class="filter-btn" data-category="tavuk">🍗 Tavuk</button>
+            <button class="filter-btn" data-category="sebze">🥦 Sebze</button>
+            <button class="filter-btn" data-category="makarna">🍝 Makarna</button>
+            <button class="filter-btn" data-category="diğer">🍽️ Diğer</button>
+          </div>
         </div>
 
         <!-- Yemek kartları grid -->
-        <div id="foodGrid" class="food-grid">
-          <!-- JavaScript tarafından doldurulur -->
+        <div id="foodGrid" class="food-grid"></div>
+
+        <!-- Boş durum -->
+        <div id="emptyState" class="empty-state" style="display:none">
+          <span class="empty-state__icon">🥄</span>
+          <p class="empty-state__text">Henüz yemek eklenmemiş.</p>
+          <button class="btn btn--primary" id="btnGoAdd">
+            <i data-lucide="plus"></i> İlk Yemeği Ekle
+          </button>
         </div>
 
-        <!-- Boş durum mesajı -->
-        <div id="emptyState" class="empty-state" style="display:none">
-          <p class="empty-state__icon">🥄</p>
-          <p class="empty-state__text">Henüz yemek eklenmemiş.</p>
-          <button class="btn btn--primary" onclick="showPage('add')">İlk Yemeği Ekle</button>
+      </section>
+
+      <!-- ===== SAYFA: ALIŞVERİŞ LİSTESİ ===== -->
+      <section id="page-grocery" class="page">
+
+        <div class="section-header">
+          <p class="section-header__label">Alışveriş</p>
+          <h2 class="section-header__title">Liste</h2>
+        </div>
+
+        <!-- Ürün ekleme alanı -->
+        <div class="grocery-input-wrap">
+          <input
+            class="grocery-input"
+            type="text"
+            id="groceryInput"
+            placeholder="Ürün ekle… (örn. Domates)"
+            maxlength="60"
+            autocomplete="off"
+            autocorrect="off"
+          />
+          <button class="btn btn--primary btn--icon" id="btnAddGrocery" aria-label="Ekle">
+            <i data-lucide="plus"></i>
+          </button>
+        </div>
+
+        <!-- Liste araçları -->
+        <div class="grocery-toolbar" id="groceryToolbar" style="display:none">
+          <button class="toolbar-btn" id="btnCopyList">
+            <i data-lucide="copy"></i> Kopyala
+          </button>
+          <button class="toolbar-btn toolbar-btn--danger" id="btnClearList">
+            <i data-lucide="trash-2"></i> Temizle
+          </button>
+        </div>
+
+        <!-- Alışveriş listesi -->
+        <ul class="grocery-list" id="groceryList"></ul>
+
+        <!-- Boş durum -->
+        <div id="groceryEmpty" class="empty-state">
+          <span class="empty-state__icon">🛒</span>
+          <p class="empty-state__text">Liste boş. Ürün ekleyerek başla.</p>
         </div>
 
       </section>
@@ -119,68 +178,55 @@
         </div>
 
         <div class="form-card">
-          <!-- Yemek ekleme formu (form etiketi kullanılmadı, div ile yapıldı) -->
           <div class="form">
 
-            <!-- Yemek adı -->
             <div class="form__group">
-              <label class="form__label" for="inputName">Yemek Adı *</label>
-              <input
-                class="form__input"
-                type="text"
-                id="inputName"
-                placeholder="örn. Mercimek Çorbası"
-                maxlength="60"
-                autocomplete="off"
-              />
+              <label class="form__label" for="inputName">
+                <i data-lucide="pencil" class="form__label-icon"></i>
+                Yemek Adı *
+              </label>
+              <input class="form__input" type="text" id="inputName"
+                placeholder="örn. Mercimek Çorbası" maxlength="60" autocomplete="off" />
             </div>
 
-            <!-- Kategori -->
             <div class="form__group">
-              <label class="form__label" for="inputCategory">Kategori *</label>
+              <label class="form__label" for="inputCategory">
+                <i data-lucide="tag" class="form__label-icon"></i>
+                Kategori *
+              </label>
               <select class="form__input form__select" id="inputCategory">
                 <option value="" disabled selected>Kategori seç</option>
-                <option value="çorba">Çorba</option>
-                <option value="et">Et</option>
-                <option value="tavuk">Tavuk</option>
-                <option value="sebze">Sebze</option>
-                <option value="makarna">Makarna</option>
-                <option value="diğer">Diğer</option>
+                <option value="çorba">🥣 Çorba</option>
+                <option value="et">🥩 Et</option>
+                <option value="tavuk">🍗 Tavuk</option>
+                <option value="sebze">🥦 Sebze</option>
+                <option value="makarna">🍝 Makarna</option>
+                <option value="diğer">🍽️ Diğer</option>
               </select>
             </div>
 
-            <!-- Hazırlama süresi -->
             <div class="form__group">
-              <label class="form__label" for="inputTime">Hazırlama Süresi (dakika) *</label>
-              <input
-                class="form__input"
-                type="number"
-                id="inputTime"
-                placeholder="örn. 30"
-                min="1"
-                max="480"
-              />
+              <label class="form__label" for="inputTime">
+                <i data-lucide="clock" class="form__label-icon"></i>
+                Hazırlama Süresi (dakika) *
+              </label>
+              <input class="form__input" type="number" id="inputTime"
+                placeholder="örn. 30" min="1" max="480" />
             </div>
 
-            <!-- Fotoğraf URL (opsiyonel) -->
             <div class="form__group">
               <label class="form__label" for="inputPhoto">
+                <i data-lucide="image" class="form__label-icon"></i>
                 Fotoğraf URL
                 <span class="form__label-hint">(opsiyonel)</span>
               </label>
-              <input
-                class="form__input"
-                type="url"
-                id="inputPhoto"
-                placeholder="https://..."
-              />
+              <input class="form__input" type="url" id="inputPhoto" placeholder="https://..." />
             </div>
 
-            <!-- Hata mesajı alanı -->
             <p id="formError" class="form__error" style="display:none"></p>
 
-            <!-- Gönder butonu -->
-            <button id="btnAddFood" class="btn btn--primary btn--full">
+            <button id="btnAddFood" class="btn btn--primary btn--full btn--lg">
+              <i data-lucide="plus-circle"></i>
               Yemeği Ekle
             </button>
 
@@ -194,15 +240,13 @@
 
         <div class="section-header">
           <p class="section-header__label">Yemek Geçmişi</p>
-          <h2 class="section-header__title">Son Yapılan Yemekler</h2>
+          <h2 class="section-header__title">Son Yapılanlar</h2>
         </div>
 
-        <div id="historyList" class="history-list">
-          <!-- JavaScript tarafından doldurulur -->
-        </div>
+        <div id="historyList" class="history-list"></div>
 
         <div id="historyEmpty" class="empty-state" style="display:none">
-          <p class="empty-state__icon">📅</p>
+          <span class="empty-state__icon">📅</span>
           <p class="empty-state__text">Henüz yemek yapılmamış.</p>
         </div>
 
@@ -211,30 +255,64 @@
     </div><!-- /container -->
   </main>
 
-  <!-- ==================== TOAST BİLDİRİM ==================== -->
+  <!-- ==================== MOBİL ALT TAB BAR ==================== -->
+  <nav class="tab-bar" id="tabBar">
+    <button class="tab-btn active" data-page="home">
+      <i data-lucide="home"></i>
+      <span>Ana Sayfa</span>
+    </button>
+    <button class="tab-btn" data-page="list">
+      <i data-lucide="utensils"></i>
+      <span>Yemekler</span>
+    </button>
+    <button class="tab-btn" data-page="grocery">
+      <i data-lucide="shopping-cart"></i>
+      <span>Alışveriş</span>
+    </button>
+    <button class="tab-btn" data-page="add">
+      <i data-lucide="plus-circle"></i>
+      <span>Ekle</span>
+    </button>
+    <button class="tab-btn" data-page="history">
+      <i data-lucide="clock"></i>
+      <span>Geçmiş</span>
+    </button>
+  </nav>
+
+  <!-- ==================== TOAST ==================== -->
   <div id="toast" class="toast" role="alert" aria-live="polite"></div>
 
+  <!-- ==================== BAŞARI ANİMASYON OVERLAY ==================== -->
+  <div id="successOverlay" class="success-overlay">
+    <div class="success-overlay__box">
+      <div class="success-overlay__check">
+        <i data-lucide="check"></i>
+      </div>
+      <p class="success-overlay__text" id="successText">Yemek eklendi!</p>
+    </div>
+  </div>
+
   <!-- ==================== PUANLAMA MODALİ ==================== -->
-  <div id="ratingModal" class="modal" role="dialog" aria-modal="true" aria-label="Yemek Puanla">
+  <div id="ratingModal" class="modal" role="dialog" aria-modal="true">
     <div class="modal__overlay"></div>
     <div class="modal__box">
-      <button class="modal__close" id="btnCloseModal" aria-label="Kapat">✕</button>
+      <button class="modal__close" id="btnCloseModal" aria-label="Kapat">
+        <i data-lucide="x"></i>
+      </button>
       <h3 class="modal__title" id="modalFoodName">Yemeği Puanla</h3>
       <p class="modal__subtitle">Bu yemeği nasıl buldunuz?</p>
-      <div class="star-rating" id="starRating" role="radiogroup" aria-label="Puan seç">
-        <!-- JavaScript tarafından yıldızlar eklenir -->
-      </div>
+      <div class="star-rating" id="starRating" role="radiogroup" aria-label="Puan seç"></div>
       <button id="btnSubmitRating" class="btn btn--primary btn--full" disabled>
-        Puanı Kaydet
+        <i data-lucide="save"></i> Puanı Kaydet
       </button>
     </div>
   </div>
 
   <!-- ==================== SCRIPTS ==================== -->
-  <!-- Firebase SDK (modüler) -->
   <script type="module" src="firebase.js"></script>
   <script type="module" src="food.js"></script>
   <script type="module" src="ui.js"></script>
+  <script type="module" src="grocery.js"></script>
   <script type="module" src="app.js"></script>
 
 </body>

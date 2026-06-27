@@ -1,14 +1,12 @@
 /**
  * firebase.js
  * Firebase başlatma ve Firestore bağlantısı.
- * Tüm Firebase işlemleri bu dosya üzerinden yürütülür.
  */
 
-import { initializeApp }     from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getFirestore }      from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { getAnalytics }      from "https://www.gstatic.com/firebasejs/12.15.0/firebase-analytics.js";
+import { initializeApp }  from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getFirestore }   from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+import { getAnalytics }   from "https://www.gstatic.com/firebasejs/12.15.0/firebase-analytics.js";
 
-/* ── Proje yapılandırması ── */
 const firebaseConfig = {
   apiKey:            "AIzaSyBAXe9znKfZydYjk4U20VR1YCysaimQ3i0",
   authDomain:        "yemekweb-cae8e.firebaseapp.com",
@@ -19,21 +17,18 @@ const firebaseConfig = {
   measurementId:     "G-Y2BNHH2PYJ"
 };
 
-/* ── Firebase uygulamasını başlat ── */
-const app       = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+const app = initializeApp(firebaseConfig);
+getAnalytics(app);
 
-/**
- * Firestore veritabanı örneği.
- * Diğer modüller bu nesneyi import ederek kullanır.
- */
+/** Firestore veritabanı örneği */
 export const db = getFirestore(app);
 
 /**
- * Firestore koleksiyon adları.
- * Sabit olarak burada tanımlanır; ileride değişirse tek yerden güncellenir.
+ * Firestore koleksiyon adları — tek yerden yönetilir.
  */
 export const COLLECTIONS = {
-  FOODS:   "foods",    // Yemek listesi
-  HISTORY: "history"  // Yapılan yemekler geçmişi
+  FOODS:    "foods",
+  HISTORY:  "history",
+  GROCERY:  "grocery",
+  SETTINGS: "settings"   // recommendedFood alanı burada saklanır
 };
