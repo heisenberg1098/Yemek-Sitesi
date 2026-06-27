@@ -33,7 +33,7 @@ Aile için günlük yemek öneren sade bir web uygulaması.
 ### 1. Repoyu klonla
 
 ```bash
-git clone https://github.com/heisenberg1098/Yemek-Sitesi
+git clone https://github.com/kullanici-adi/yemek-oneri.git
 cd yemek-oneri
 ```
 

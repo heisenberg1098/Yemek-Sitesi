@@ -280,22 +280,9 @@ function resetAddForm() {
  * Her butona tıklandığında ilgili sayfayı açar,
  * gerekirse taze veri çeker.
  */
-function bindNavButtons() {
-  document.querySelectorAll(".nav-btn").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const page = btn.dataset.page;
-      showPage(page);
 
-      // Sayfaya özgü veri yükleme
-      if (page === "list")    await loadFoodList();
-      if (page === "history") await loadHistory();
-    });
-  });
-}
 
-/**
- * Logo tıklamasını ana sayfaya bağlar.
- */
+
 function bindNavButtons() {
   // Nav butonları
   document.querySelectorAll(".nav-btn").forEach(btn => {
