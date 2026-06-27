@@ -1,63 +1,121 @@
-# Yemek-Sitesi
+# 🍽️ Bugün Ne Yesek?
 
-🍽️ Bugün Ne Yesek?
-Evdeki "Akşama ne pişirsek?" krizlerine pratik bir çözüm bulmak için geliştirdiğim sade bir web uygulaması. Karar verme sürecini uzatmamak için tasarlandı; yaklaşık 10 saniye içinde sana mantıklı bir yemek önerisi sunuyor.
+Aile için günlük yemek öneren sade bir web uygulaması.  
+"Bugün ne yemek yapacağız?" sorusunu 10 saniyede cevaplar.
 
-✨ Neler Yapabiliyor?
-Akıllı Öneri: Uygulama, son 5 günde yaptığınız yemekleri hafızasında tutarak sana sürekli aynı şeyleri önermekten kaçınıyor.
+---
 
-Hızlı Karar: Gelen öneriyi beğendiysen Yapalım butonuna basıyorsun ve o yemek doğrudan geçmişe kaydediliyor.
+## Özellikler
 
-Alternatif Arama: Canın o yemeği çekmediyse Başka Öner diyerek şansını tekrar deneyebiliyorsun.
+- **Günlük Öneri** — Son 5 günde yapılan yemekler hariç tutularak rastgele öneri
+- **Yapalım** — Seçilen yemek geçmişe kaydedilir
+- **Başka Öner** — Yeni rastgele öneri alır
+- **Yemek Listesi** — Kategoriye göre filtrelenebilir kart görünümü
+- **Yemek Ekle** — Ad, kategori, süre ve fotoğraf URL ile yeni yemek
+- **Puanlama** — Her yemek için ★★★★★ puanlama
+- **Geçmiş** — Son yapılan yemekler tarihleriyle listelenir
 
-Kendi Menünü Oluştur: Veritabanına kendi yaptığınız yemekleri; fotoğraf, kategori ve hazırlama süresi gibi detaylarla ekleyebilirsin.
+---
 
-Puanlama Sistemi: Yemeklere 1'den 5'e kadar yıldız vererek ailenin favorilerini belirleyebilirsin.
+## Teknolojiler
 
-Geçmiş: Geriye dönük "Biz geçen hafta ne yemiştik?" sorusunun cevabını liste halinde görebilirsin.
+| Katman    | Teknoloji                  |
+|-----------|----------------------------|
+| Arayüz    | HTML5, CSS3, Vanilla JS    |
+| Veritabanı | Firebase Firestore         |
+| Hosting   | GitHub Pages               |
+| Font      | Inter (Google Fonts)       |
 
-🛠️ Kullandığım Teknolojiler
-Projeyi geliştirirken olabildiğince dışa bağımlılığı azaltıp sade kalmaya çalıştım:
+---
 
-Frontend: HTML5, CSS3, Vanilla JS (Herhangi bir framework kullanılmadı)
+## Kurulum
 
-Veritabanı: Firebase Firestore (Hızlı ve gerçek zamanlı yapısı için tercih ettim)
+### 1. Repoyu klonla
 
-Hosting: GitHub Pages
-
-Tipografi: Inter (Google Fonts)
-
-🚀 Kurulum ve Kullanım
-Projeyi kendi bilgisayarında denemek veya kendi ailen için özelleştirmek istersen adımlar oldukça basit:
-
-1. Projeyi Bilgisayarına İndir
-Bash
+```bash
 git clone https://github.com/kullanici-adi/yemek-oneri.git
 cd yemek-oneri
-2. Firebase Bağlantısı
-Uygulamanın çalışması için kendi Firebase veritabanını bağlaman gerekiyor. js/firebase.js dosyası içindeki firebaseConfig ayarlarını kendi projenin bilgileriyle değiştir. (Bunun için Firebase Console üzerinden ücretsiz bir web uygulaması oluşturman yeterli).
+```
 
-3. Firestore Kuralları
-Veritabanının okuma/yazma izinlerini ayarlamalısın. Şimdilik sadece aile içi kullanım odaklı olduğu için test aşamasında kuralları herkese açık bırakabilirsin:
+### 2. Firebase ayarları
 
-JavaScript
+`js/firebase.js` dosyasındaki `firebaseConfig` nesnesi kendi Firebase projenle dolu.  
+Değiştirmek gerekirse [Firebase Console](https://console.firebase.google.com) → Proje Ayarları → Web Uygulaması bölümünden alabilirsin.
+
+### 3. Firestore kuralları
+
+Firebase Console → Firestore Database → Rules sekmesine şu kuralları yapıştır:
+
+```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /foods/{id} { allow read, write: if true; }
-    match /history/{id} { allow read, write: if true; }
+    match /foods/{id} {
+      allow read, write: if true;
+    }
+    match /history/{id} {
+      allow read, write: if true;
+    }
   }
 }
-⚠️ Küçük bir uyarı: Projeyi ileride dışarıya açacaksan, bu kuralları mutlaka güvenlik standartlarına uygun hale getirmelisin.
+```
 
-4. Yayına Alma (Opsiyonel)
-Değişikliklerini tamamladıktan sonra GitHub reposu üzerinden Settings → Pages sekmesine gidip projeni GitHub Pages aracılığıyla birkaç dakika içinde canlıya alabilirsin.
+> ⚠️ Bu kurallar genel erişime açıktır. Yalnızca aile kullanımı içindir.
 
-💡 Kodlarken Dikkat Ettiklerim (Geliştirici Notları)
-Performans Optimizasyonu: Uygulama açıldığında tüm yemek listesini veritabanından sadece bir kez (allFoods dizisine) çekiyorum. Sayfa geçişlerinde sürekli veritabanına istek atmak yerine bu yerel veriyi kullanarak hızı artırdım.
+### 4. GitHub Pages'e yayınla
 
-Öneri Mantığı: Rastgele öneri fonksiyonu çalışmadan önce getRecentHistory(5) metodu devreye giriyor. Son 5 günün verisini filtreleyip bu yemekleri öneri havuzunun dışında bırakıyor.
+```bash
+git add .
+git commit -m "ilk yayın"
+git push origin main
+```
 
-Güvenlik (XSS): Dışarıdan veya formlardan girilen tüm veriler ekrana basılmadan önce yazdığım özel bir escHtml() fonksiyonundan geçiyor.
+GitHub → Repo → Settings → Pages → Branch: `main` / `/ (root)` seç → Save.
 
-Modül Kullanımı: JavaScript dosyalarını daha düzenli tutmak için ES modüllerini (type="module") tercih ettim. Bu yüzden index.html dosyasını direkt tarayıcıda açarsan CORS hatası alırsın. Kodu denerken VS Code Live Server gibi yerel bir sunucu kullanmayı unutma.
+Birkaç dakika sonra `https://kullanici-adi.github.io/yemek-oneri/` adresinde yayında.
+
+---
+
+## Dosya Yapısı
+
+```
+yemek-oneri/
+├── index.html          # Tek sayfa, 4 bölüm (home / list / add / history)
+├── css/
+│   └── style.css       # Tüm stiller, CSS değişkenleri, responsive
+├── js/
+│   ├── firebase.js     # Firebase başlatma, db export
+│   ├── food.js         # Firestore CRUD + öneri mantığı
+│   ├── ui.js           # DOM render fonksiyonları
+│   └── app.js          # Orkestratör, event listener'lar
+├── images/             # İsteğe bağlı yerel görseller
+└── README.md
+```
+
+---
+
+## Kullanım
+
+### Yemek ekleme
+1. **Yemek Ekle** sayfasına git
+2. Ad, kategori ve hazırlama süresini doldur
+3. İsteğe bağlı fotoğraf URL'si ekle
+4. **Yemeği Ekle** butonuna bas
+
+### Öneri alma
+- Ana sayfada günün önerisi otomatik gelir
+- **Başka Öner** ile farklı bir öneri al
+- **Yapalım** ile yemeği onayla → geçmişe kaydedilir
+
+### Puanlama
+- **Yemekler** sayfasında herhangi bir karttaki **Puanla** butonuna bas
+- 1–5 yıldız seç ve kaydet
+
+---
+
+## Geliştirici Notları
+
+- `allFoods` dizisi uygulama başlangıcında bir kez çekilir; sayfa geçişlerinde tazeler.
+- Son 5 gün içinde yapılan yemekler `getRecentHistory(5)` ile elenip öneri dışı tutulur.
+- Tüm kullanıcı girdileri `escHtml()` fonksiyonuyla XSS'e karşı temizlenir.
+- `type="module"` ile ES modülleri kullanıldığından lokal açılışta CORS hatası alınır; bir yerel sunucu (örn. VS Code Live Server) üzerinden test et.

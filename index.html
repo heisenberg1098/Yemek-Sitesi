@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Aile yemek öneri uygulaması" />
+  <title>Bugün Ne Yesek?</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="header">
+    <div class="container header__inner">
+      <a href="#" class="header__logo" onclick="showPage('home')">🍽️ Bugün Ne Yesek?</a>
+      <nav class="header__nav">
+        <button class="nav-btn active" data-page="home">Ana Sayfa</button>
+        <button class="nav-btn" data-page="list">Yemekler</button>
+        <button class="nav-btn" data-page="add">Yemek Ekle</button>
+        <button class="nav-btn" data-page="history">Geçmiş</button>
+      </nav>
+      <!-- Mobil hamburger menü -->
+      <button class="header__menu-toggle" id="menuToggle" aria-label="Menüyü aç">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== ANA İÇERİK ==================== -->
+  <main class="main">
+    <div class="container">
+
+      <!-- ===== SAYFA: ANA SAYFA ===== -->
+      <section id="page-home" class="page page--active">
+
+        <!-- Günün önerisi başlığı -->
+        <div class="section-header">
+          <p class="section-header__label">Günün Önerisi</p>
+          <h1 class="section-header__title">Bugün ne yapalım?</h1>
+        </div>
+
+        <!-- Günün yemeği kartı -->
+        <div id="todayCard" class="today-card">
+          <!-- JavaScript tarafından doldurulur -->
+          <div class="today-card__loading">
+            <div class="spinner"></div>
+            <p>Yemek seçiliyor…</p>
+          </div>
+        </div>
+
+        <!-- Aksiyon butonları -->
+        <div class="today-actions">
+          <button id="btnMakeit" class="btn btn--primary" disabled>
+            ✓ Yapalım
+          </button>
+          <button id="btnSuggest" class="btn btn--secondary">
+            ↻ Başka Öner
+          </button>
+        </div>
+
+        <!-- Son yapılan yemekler bilgisi -->
+        <div id="recentInfo" class="recent-info" style="display:none">
+          <p class="recent-info__text">
+            Son birkaç günde yapılan yemekler önerilmez:
+            <span id="recentList" class="recent-info__list"></span>
+          </p>
+        </div>
+
+      </section>
+
+      <!-- ===== SAYFA: YEMEK LİSTESİ ===== -->
+      <section id="page-list" class="page">
+
+        <div class="section-header">
+          <p class="section-header__label">Yemek Defteri</p>
+          <h2 class="section-header__title">Tüm Yemekler</h2>
+        </div>
+
+        <!-- Filtre çubuğu -->
+        <div class="filter-bar">
+          <button class="filter-btn active" data-category="all">Tümü</button>
+          <button class="filter-btn" data-category="çorba">Çorba</button>
+          <button class="filter-btn" data-category="et">Et</button>
+          <button class="filter-btn" data-category="tavuk">Tavuk</button>
+          <button class="filter-btn" data-category="sebze">Sebze</button>
+          <button class="filter-btn" data-category="makarna">Makarna</button>
+          <button class="filter-btn" data-category="diğer">Diğer</button>
+        </div>
+
+        <!-- Yemek kartları grid -->
+        <div id="foodGrid" class="food-grid">
+          <!-- JavaScript tarafından doldurulur -->
+        </div>
+
+        <!-- Boş durum mesajı -->
+        <div id="emptyState" class="empty-state" style="display:none">
+          <p class="empty-state__icon">🥄</p>
+          <p class="empty-state__text">Henüz yemek eklenmemiş.</p>
+          <button class="btn btn--primary" onclick="showPage('add')">İlk Yemeği Ekle</button>
+        </div>
+
+      </section>
+
+      <!-- ===== SAYFA: YEMEK EKLE ===== -->
+      <section id="page-add" class="page">
+
+        <div class="section-header">
+          <p class="section-header__label">Yemek Defteri</p>
+          <h2 class="section-header__title">Yeni Yemek Ekle</h2>
+        </div>
+
+        <div class="form-card">
+          <!-- Yemek ekleme formu (form etiketi kullanılmadı, div ile yapıldı) -->
+          <div class="form">
+
+            <!-- Yemek adı -->
+            <div class="form__group">
+              <label class="form__label" for="inputName">Yemek Adı *</label>
+              <input
+                class="form__input"
+                type="text"
+                id="inputName"
+                placeholder="örn. Mercimek Çorbası"
+                maxlength="60"
+                autocomplete="off"
+              />
+            </div>
+
+            <!-- Kategori -->
+            <div class="form__group">
+              <label class="form__label" for="inputCategory">Kategori *</label>
+              <select class="form__input form__select" id="inputCategory">
+                <option value="" disabled selected>Kategori seç</option>
+                <option value="çorba">Çorba</option>
+                <option value="et">Et</option>
+                <option value="tavuk">Tavuk</option>
+                <option value="sebze">Sebze</option>
+                <option value="makarna">Makarna</option>
+                <option value="diğer">Diğer</option>
+              </select>
+            </div>
+
+            <!-- Hazırlama süresi -->
+            <div class="form__group">
+              <label class="form__label" for="inputTime">Hazırlama Süresi (dakika) *</label>
+              <input
+                class="form__input"
+                type="number"
+                id="inputTime"
+                placeholder="örn. 30"
+                min="1"
+                max="480"
+              />
+            </div>
+
+            <!-- Fotoğraf URL (opsiyonel) -->
+            <div class="form__group">
+              <label class="form__label" for="inputPhoto">
+                Fotoğraf URL
+                <span class="form__label-hint">(opsiyonel)</span>
+              </label>
+              <input
+                class="form__input"
+                type="url"
+                id="inputPhoto"
+                placeholder="https://..."
+              />
+            </div>
+
+            <!-- Hata mesajı alanı -->
+            <p id="formError" class="form__error" style="display:none"></p>
+
+            <!-- Gönder butonu -->
+            <button id="btnAddFood" class="btn btn--primary btn--full">
+              Yemeği Ekle
+            </button>
+
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===== SAYFA: GEÇMİŞ ===== -->
+      <section id="page-history" class="page">
+
+        <div class="section-header">
+          <p class="section-header__label">Yemek Geçmişi</p>
+          <h2 class="section-header__title">Son Yapılan Yemekler</h2>
+        </div>
+
+        <div id="historyList" class="history-list">
+          <!-- JavaScript tarafından doldurulur -->
+        </div>
+
+        <div id="historyEmpty" class="empty-state" style="display:none">
+          <p class="empty-state__icon">📅</p>
+          <p class="empty-state__text">Henüz yemek yapılmamış.</p>
+        </div>
+
+      </section>
+
+    </div><!-- /container -->
+  </main>
+
+  <!-- ==================== TOAST BİLDİRİM ==================== -->
+  <div id="toast" class="toast" role="alert" aria-live="polite"></div>
+
+  <!-- ==================== PUANLAMA MODALİ ==================== -->
+  <div id="ratingModal" class="modal" role="dialog" aria-modal="true" aria-label="Yemek Puanla">
+    <div class="modal__overlay"></div>
+    <div class="modal__box">
+      <button class="modal__close" id="btnCloseModal" aria-label="Kapat">✕</button>
+      <h3 class="modal__title" id="modalFoodName">Yemeği Puanla</h3>
+      <p class="modal__subtitle">Bu yemeği nasıl buldunuz?</p>
+      <div class="star-rating" id="starRating" role="radiogroup" aria-label="Puan seç">
+        <!-- JavaScript tarafından yıldızlar eklenir -->
+      </div>
+      <button id="btnSubmitRating" class="btn btn--primary btn--full" disabled>
+        Puanı Kaydet
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== SCRIPTS ==================== -->
+  <!-- Firebase SDK (modüler) -->
+  <script type="module" src="js/firebase.js"></script>
+  <script type="module" src="js/food.js"></script>
+  <script type="module" src="js/ui.js"></script>
+  <script type="module" src="js/app.js"></script>
+
+</body>
+</html>
