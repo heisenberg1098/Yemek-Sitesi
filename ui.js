@@ -4,7 +4,7 @@
  * Veri çekmez; hazır veriyi ekrana yansıtır.
  */
 
-import { getAverageRating, formatDate } from "./food.js";
+import { getAverageRating, formatDate, normalizeCategory } from "./food.js";
 
 /* ══════════════════════════════════════════
    NAVİGASYON
@@ -411,8 +411,8 @@ export function renderStarsDisplay(avg) {
  * @returns {string}
  */
 export function categoryEmoji(category) {
-  const map = { çorba:"🥣", et:"🥩", tavuk:"🍗", sebze:"🥦", makarna:"🍝", diğer:"🍽️" };
-  return map[category?.toLowerCase()] ?? "🍽️";
+  const map = { çorba:"🥣", et:"🥩", tavuk:"🍗", sebze:"🥦", makarna:"🍝", tatlı:"🍰", diğer:"🍽️" };
+  return map[normalizeCategory(category)] ?? "🍽️";
 }
 
 /**

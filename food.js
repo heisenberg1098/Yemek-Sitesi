@@ -4,10 +4,8 @@
  */
 
 import {
-  collection, doc, addDoc, getDoc, getDocs,
-  updateDoc, setDoc, orderBy, query, limit, serverTimestamp
+  collection, doc, addDoc, getDocs, getDoc, updateDoc, setDoc, query, orderBy, limit, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-
 import { db, COLLECTIONS } from "./firebase.js";
 
 /* ══════════════════════════════════════════
@@ -167,9 +165,33 @@ export async function getRecommendedFood() {
   return snap.exists() ? snap.data() : null;
 }
 
+/**
+ * Manuel öneriyi sıfırlar ("Başka Öner" dendiğinde).
+ */
+export async function clearRecommendedFood() {
+  await setDoc(doc(db, COLLECTIONS.SETTINGS, "daily"), {
+    manuallySelected: false,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+}
+
 /* ══════════════════════════════════════════
    ÖNERİ MANTIĞI
 ══════════════════════════════════════════ */
+
+/**
+ * Kategori adlarını karşılaştırma için normalize eder.
+ * NOT: String.prototype.toLowerCase() Türkçe karakterlerde hatalı sonuç verir
+ * ("TATLI".toLowerCase() === "tatli", noktasız i — "tatlı" ile eşleşmez;
+ * "DİĞER".toLowerCase() === "di̇ğer" — kombinleme karakteri ekler).
+ * Bu yüzden tüm kategori karşılaştırmaları bu fonksiyon üzerinden, tr-TR
+ * locale'i ile yapılmalıdır.
+ * @param {string} str
+ * @returns {string}
+ */
+export function normalizeCategory(str) {
+  return (str ?? "").trim().toLocaleLowerCase("tr-TR");
+}
 
 /**
  * Son N günde yapılanlar hariç rastgele yemek seçer.

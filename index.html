@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -17,6 +18,7 @@
 
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
   <!-- ==================== HEADER (masaüstü) ==================== -->
@@ -87,6 +89,28 @@
           </p>
         </div>
 
+        <!-- ===== MENÜ ÖNER KARTI ===== -->
+        <div class="menu-suggest-card">
+          <div class="menu-suggest-card__header">
+            <span class="menu-suggest-card__icon">🍽️</span>
+            <div>
+              <p class="menu-suggest-card__label">Tam Menü</p>
+              <h3 class="menu-suggest-card__title">Menü Öner</h3>
+            </div>
+          </div>
+
+          <!-- Oluşturulan menü (başta gizli) -->
+          <div id="menuResult" class="menu-result" style="display:none">
+            <div class="menu-result__divider"></div>
+            <ul class="menu-result__list" id="menuResultList"></ul>
+          </div>
+
+          <button id="btnSuggestMenu" class="btn btn--secondary btn--full">
+            <i data-lucide="sparkles"></i>
+            Menü Öner
+          </button>
+        </div>
+
       </section>
 
       <!-- ===== SAYFA: YEMEK LİSTESİ ===== -->
@@ -106,6 +130,7 @@
             <button class="filter-btn" data-category="tavuk">🍗 Tavuk</button>
             <button class="filter-btn" data-category="sebze">🥦 Sebze</button>
             <button class="filter-btn" data-category="makarna">🍝 Makarna</button>
+            <button class="filter-btn" data-category="tatlı">🍰 Tatlı</button>
             <button class="filter-btn" data-category="diğer">🍽️ Diğer</button>
           </div>
         </div>
@@ -134,15 +159,8 @@
 
         <!-- Ürün ekleme alanı -->
         <div class="grocery-input-wrap">
-          <input
-            class="grocery-input"
-            type="text"
-            id="groceryInput"
-            placeholder="Ürün ekle… (örn. Domates)"
-            maxlength="60"
-            autocomplete="off"
-            autocorrect="off"
-          />
+          <input class="grocery-input" type="text" id="groceryInput" placeholder="Ürün ekle… (örn. Domates)"
+            maxlength="60" autocomplete="off" autocorrect="off" />
           <button class="btn btn--primary btn--icon" id="btnAddGrocery" aria-label="Ekle">
             <i data-lucide="plus"></i>
           </button>
@@ -185,8 +203,8 @@
                 <i data-lucide="pencil" class="form__label-icon"></i>
                 Yemek Adı *
               </label>
-              <input class="form__input" type="text" id="inputName"
-                placeholder="örn. Mercimek Çorbası" maxlength="60" autocomplete="off" />
+              <input class="form__input" type="text" id="inputName" placeholder="örn. Mercimek Çorbası" maxlength="60"
+                autocomplete="off" />
             </div>
 
             <div class="form__group">
@@ -201,6 +219,7 @@
                 <option value="tavuk">🍗 Tavuk</option>
                 <option value="sebze">🥦 Sebze</option>
                 <option value="makarna">🍝 Makarna</option>
+                <option value="tatlı">🍰 Tatlı</option>
                 <option value="diğer">🍽️ Diğer</option>
               </select>
             </div>
@@ -210,8 +229,7 @@
                 <i data-lucide="clock" class="form__label-icon"></i>
                 Hazırlama Süresi (dakika) *
               </label>
-              <input class="form__input" type="number" id="inputTime"
-                placeholder="örn. 30" min="1" max="480" />
+              <input class="form__input" type="number" id="inputTime" placeholder="örn. 30" min="1" max="480" />
             </div>
 
             <div class="form__group">
@@ -316,4 +334,5 @@
   <script type="module" src="app.js"></script>
 
 </body>
+
 </html>
